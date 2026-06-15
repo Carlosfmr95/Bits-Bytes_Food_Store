@@ -230,6 +230,7 @@ class ProductoService:
         limit: int = 20,
         incluir_inactivos: bool = False,
         nombre: str | None = None,
+        categoria_id: int | None = None,
         sort_by: str = "nombre",
         sort_dir: str = "asc",
     ) -> ProductoList:
@@ -237,10 +238,12 @@ class ProductoService:
             productos = uow.productos.get_all_activos(
                 offset=offset, limit=limit,
                 incluir_inactivos=incluir_inactivos, nombre=nombre,
+                categoria_id=categoria_id,
                 sort_by=sort_by, sort_dir=sort_dir,
             )
             total = uow.productos.count_activos(
-                incluir_inactivos=incluir_inactivos, nombre=nombre
+                incluir_inactivos=incluir_inactivos, nombre=nombre,
+                categoria_id=categoria_id,
             )
             result = ProductoList(
                 data=[self._build_public(uow, p) for p in productos],

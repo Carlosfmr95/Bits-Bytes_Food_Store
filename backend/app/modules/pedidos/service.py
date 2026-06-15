@@ -316,6 +316,8 @@ class PedidoService:
         limit: int = 20,
         usuario_id: int = 0,
         roles: list[str] | None = None,
+        estado: str | None = None,
+        busqueda: str | None = None,
     ) -> PedidoList:
         roles = roles or []
         is_client_only = (
@@ -324,11 +326,18 @@ class PedidoService:
         )
         with PedidoUnitOfWork(self._session) as uow:
             if is_client_only:
-                pedidos = uow.pedidos.get_all_by_usuario(usuario_id, offset=offset, limit=limit)
-                total   = uow.pedidos.count_by_usuario(usuario_id)
+                pedidos = uow.pedidos.get_all_by_usuario(
+                    usuario_id, offset=offset, limit=limit,
+                    estado=estado, busqueda=busqueda,
+                )
+                total = uow.pedidos.count_by_usuario(
+                    usuario_id, estado=estado, busqueda=busqueda
+                )
             else:
-                pedidos = uow.pedidos.get_all_activos(offset=offset, limit=limit)
-                total   = uow.pedidos.count_activos()
+                pedidos = uow.pedidos.get_all_activos(
+                    offset=offset, limit=limit, estado=estado, busqueda=busqueda
+                )
+                total = uow.pedidos.count_activos(estado=estado, busqueda=busqueda)
             result = PedidoList(
                 data=[self._build_public(uow, p) for p in pedidos],
                 total=total,

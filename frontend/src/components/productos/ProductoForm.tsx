@@ -6,8 +6,6 @@ import type { Ingrediente } from '../../models/ingrediente'
 import type { Categoria } from '../../models/categoria'
 
 interface IngItemRow { ingrediente_id: number; cantidad: number; es_removible: boolean; es_opcional: boolean }
-/** Estado de un ingrediente en TERMINADO: {es_removible, es_opcional} */
-interface IngSelVal { es_removible: boolean; es_opcional: boolean }
 
 const TIPOS: { value: TipoProducto; label: string; desc: string }[] = [
   { value: 'TERMINADO',     label: 'Terminado',     desc: 'Producto listo para venta, sin receta' },
@@ -33,7 +31,6 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
   const [tiempoPrepMin, setTiempoPrepMin]= useState<string>('')
   const [tipo,          setTipo]         = useState<TipoProducto>('TERMINADO')
   const [catSel,        setCatSel]       = useState<Map<number, boolean>>(new Map())
-  const [ingSel,        setIngSel]       = useState<Map<number, IngSelVal>>(new Map())
   const [ingItems,      setIngItems]     = useState<IngItemRow[]>([])
   const [margen,        setMargen]       = useState(50)
   const [error,         setError]        = useState('')
@@ -50,36 +47,38 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
       const newCatSel = new Map<number, boolean>(); initial.categorias.forEach(c => newCatSel.set(c.id, c.es_principal)); setCatSel(newCatSel)
       if (initial.tipo === 'MANUFACTURADO') {
         setIngItems(initial.ingredientes.map(i => ({ ingrediente_id: i.id, cantidad: i.cantidad, es_removible: i.es_removible, es_opcional: i.es_opcional })))
-        setIngSel(new Map())
       } else {
-        const m = new Map<number, IngSelVal>()
-        initial.ingredientes.forEach(i => m.set(i.id, { es_removible: i.es_removible, es_opcional: i.es_opcional }))
-        setIngSel(m); setIngItems([])
+        setIngItems([])
       }
     } else {
       setNombre(''); setDesc(''); setPrecio(''); setStock('0'); setDisponible(true)
       setImagenesUrl([]); setTiempoPrepMin('')
-      setTipo('TERMINADO'); setCatSel(new Map()); setIngSel(new Map()); setIngItems([]); setMargen(50)
+      setTipo('TERMINADO'); setCatSel(new Map()); setIngItems([]); setMargen(50)
     }
     setError(''); setIsDirty(false); onDirtyChange?.(false)
   }, [initial])
+
+  // Al editar un MANUFACTURADO, reconstruye el margen a partir del precio guardado
+  // y el costo de la receta, para que el "precio sugerido" coincida con el precio
+  // actual y no se modifique de forma silenciosa al guardar. Efecto aparte para no
+  // resetear los demás campos cuando el catálogo de ingredientes carga después.
+  useEffect(() => {
+    if (!initial || initial.tipo !== 'MANUFACTURADO') return
+    const costo = initial.ingredientes.reduce((sum, i) => {
+      const ref = ingredientes.find(x => x.id === i.id)
+      return sum + (ref?.costo ?? 0) * i.cantidad
+    }, 0)
+    const precio = Number(initial.precio_base)
+    if (costo > 0 && precio > 0) {
+      setMargen(Number((((precio / costo) - 1) * 100).toFixed(1)))
+    }
+  }, [initial, ingredientes])
 
   const markDirty = () => { setIsDirty(true); onDirtyChange?.(true) }
 
   // ── Categorías ────────────────────────────────────────────────────────────
   const toggleCategoria = (id: number) => { setCatSel(prev => { const n = new Map(prev); n.has(id) ? n.delete(id) : n.set(id, false); return n }); markDirty() }
   const setPrincipal    = (id: number, val: boolean) => { setCatSel(prev => { const n = new Map(prev); if (val) n.forEach((_, k) => n.set(k, false)); n.set(id, val); return n }); markDirty() }
-
-  // ── Ingredientes TERMINADO ────────────────────────────────────────────────
-  const toggleIngrediente = (id: number) => {
-    setIngSel(prev => { const m = new Map(prev); m.has(id) ? m.delete(id) : m.set(id, { es_removible: false, es_opcional: false }); return m }); markDirty()
-  }
-  const setIngSelRemovible = (id: number, val: boolean) => {
-    setIngSel(prev => { const m = new Map(prev); const cur = m.get(id); if (cur) m.set(id, { ...cur, es_removible: val }); return m }); markDirty()
-  }
-  const setIngSelOpcional = (id: number, val: boolean) => {
-    setIngSel(prev => { const m = new Map(prev); const cur = m.get(id); if (cur) m.set(id, { ...cur, es_opcional: val }); return m }); markDirty()
-  }
 
   // ── Ingredientes MANUFACTURADO ────────────────────────────────────────────
   const ingDisponibles = useMemo(() => ingredientes.filter(i => !ingItems.some(item => item.ingrediente_id === i.id)), [ingredientes, ingItems])
@@ -92,7 +91,7 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
   const updateRemovible  = (idx: number, val: boolean) => { setIngItems(prev => prev.map((item, i) => i === idx ? { ...item, es_removible: val } : item)); markDirty() }
   const updateOpcional   = (idx: number, val: boolean) => { setIngItems(prev => prev.map((item, i) => i === idx ? { ...item, es_opcional: val } : item)); markDirty() }
   const removeIngItem    = (idx: number) => { setIngItems(prev => prev.filter((_, i) => i !== idx)); markDirty() }
-  const handleTipoChange = (newTipo: TipoProducto) => { setTipo(newTipo); setIngSel(new Map()); setIngItems([]); if (newTipo === 'MANUFACTURADO') setStock('0'); markDirty() }
+  const handleTipoChange = (newTipo: TipoProducto) => { setTipo(newTipo); setIngItems([]); if (newTipo === 'MANUFACTURADO') setStock('0'); markDirty() }
 
   // ── Imágenes ─────────────────────────────────────────────────────────────
   const addImagen    = () => { setImagenesUrl(prev => [...prev, '']); markDirty() }
@@ -118,26 +117,33 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (nombre.trim().length < 2) { setError('El nombre debe tener al menos 2 caracteres'); return }
-    if (!precioBase || Number(precioBase) < 0) { setError('El precio debe ser mayor o igual a 0'); return }
+    // El precio de un MANUFACTURADO se deriva de la receta (costo × margen);
+    // solo el TERMINADO tiene precio cargado manualmente.
+    if (tipo === 'TERMINADO' && (!precioBase || Number(precioBase) < 0)) {
+      setError('El precio debe ser mayor o igual a 0'); return
+    }
     if (catSel.size === 0) { setError('Debe seleccionar al menos una categoría'); return }
     if (Number(stockCantidad) < 0) { setError('El stock no puede ser negativo'); return }
     if (manufError) { setError(manufError); return }
     setError(''); setSubmitting(true)
     try {
-      const ingPayload = tipo === 'MANUFACTURADO'
-        ? ingItems
-        : Array.from(ingSel.entries()).map(([id, val]) => ({ ingrediente_id: id, cantidad: 1, es_removible: val.es_removible, es_opcional: val.es_opcional }))
+      // Un TERMINADO no tiene receta; solo el MANUFACTURADO envía ingredientes.
+      const ingPayload = tipo === 'MANUFACTURADO' ? ingItems : []
 
       const imagenesLimpias = imagenesUrl.map(u => u.trim()).filter(Boolean)
+
+      const precioFinal = tipo === 'MANUFACTURADO'
+        ? Number(precioSugerido.toFixed(2))
+        : Number(precioBase)
 
       const data: ProductoCreate = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim() || null,
-        precio_base: Number(precioBase),
+        precio_base: precioFinal,
         stock_cantidad: tipo === 'MANUFACTURADO' ? 0 : Number(stockCantidad),
         disponible, tipo,
         imagenes_url: imagenesLimpias,
-        tiempo_prep_min: tiempoPrepMin ? Number(tiempoPrepMin) : null,
+        tiempo_prep_min: tipo === 'MANUFACTURADO' && tiempoPrepMin ? Number(tiempoPrepMin) : null,
         categoria_ids: Array.from(catSel.entries()).sort((a, b) => Number(b[1]) - Number(a[1])).map(([id]) => id),
         ingredientes: ingPayload,
       }
@@ -174,28 +180,31 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
         <input type="text" value={nombre} onChange={e => { setNombre(e.target.value); markDirty() }} placeholder="Ej: Pizza Margherita" maxLength={150} required className={inputCls} />
       </div>
 
-      {/* Precio + Stock + Tiempo prep */}
-      <div className={`grid gap-4 ${tipo === 'TERMINADO' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <div>
-          <label className={labelCls}>Precio base <span className="text-red-500">*</span></label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">$</span>
-            <input type="number" value={precioBase} onChange={e => { setPrecio(e.target.value); markDirty() }} placeholder="0.00" min="0" step="0.01" required className={`${inputCls} pl-7`} />
+      {/* Precio + Stock — solo TERMINADO. El MANUFACTURADO deriva su precio
+          de la receta (costo × margen) y su stock del de los ingredientes. */}
+      {tipo === 'TERMINADO' && (
+        <div className="grid gap-4 grid-cols-2">
+          <div>
+            <label className={labelCls}>Precio base <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">$</span>
+              <input type="number" value={precioBase} onChange={e => { setPrecio(e.target.value); markDirty() }} placeholder="0.00" min="0" step="0.01" required className={`${inputCls} pl-7`} />
+            </div>
           </div>
-        </div>
-        {tipo === 'TERMINADO' && (
           <div>
             <label className={labelCls}>Stock disponible</label>
             <input type="number" value={stockCantidad} onChange={e => { setStock(e.target.value); markDirty() }} min="0" className={inputCls} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Tiempo de preparación */}
-      <div>
-        <label className={labelCls}>Tiempo de preparación <span className="text-gray-400 dark:text-gray-500 font-normal">(minutos, opcional)</span></label>
-        <input type="number" value={tiempoPrepMin} onChange={e => { setTiempoPrepMin(e.target.value); markDirty() }} min="0" step="1" placeholder="Ej: 15" className={inputCls} />
-      </div>
+      {/* Tiempo de preparación — solo MANUFACTURADO (un TERMINADO no se prepara). */}
+      {tipo === 'MANUFACTURADO' && (
+        <div>
+          <label className={labelCls}>Tiempo de preparación <span className="text-gray-400 dark:text-gray-500 font-normal">(minutos, opcional)</span></label>
+          <input type="number" value={tiempoPrepMin} onChange={e => { setTiempoPrepMin(e.target.value); markDirty() }} min="0" step="1" placeholder="Ej: 15" className={inputCls} />
+        </div>
+      )}
 
       {/* Disponible */}
       <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -275,54 +284,6 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
         }
         {catSel.size > 0 && <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{catSel.size} categoría(s) seleccionada(s)</p>}
       </div>
-
-      {/* Ingredientes TERMINADO */}
-      {tipo === 'TERMINADO' && (
-        <div>
-          <label className={`${labelCls} mb-2`}>Ingredientes / alérgenos <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">(opcional)</span></label>
-          {ingredientes.length === 0
-            ? <p className="text-sm text-gray-400 dark:text-gray-500 italic">No hay ingredientes disponibles</p>
-            : (
-              <div className="border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[1fr_auto_auto] gap-0 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 px-3 py-2 border-b border-gray-200 dark:border-gray-600">
-                  <span>Ingrediente</span>
-                  <span className="text-center px-3">Removible</span>
-                  <span className="text-center px-3">Opcional</span>
-                </div>
-                <div className="max-h-40 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-700">
-                  {ingredientes.map(i => {
-                    const sel = ingSel.get(i.id)
-                    const checked = ingSel.has(i.id)
-                    return (
-                      <div key={i.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-0 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={checked} onChange={() => toggleIngrediente(i.id)} className="w-4 h-4 accent-blue-600" />
-                          <span className="text-sm text-gray-700 dark:text-gray-200">{i.nombre}</span>
-                          {i.es_alergeno && <span className="text-xs text-amber-600 dark:text-amber-400">⚠️</span>}
-                        </label>
-                        <div className="text-center px-3">
-                          {checked && (
-                            <input type="checkbox" checked={sel?.es_removible ?? false}
-                              onChange={e => setIngSelRemovible(i.id, e.target.checked)}
-                              className="w-4 h-4 accent-green-500" title="El cliente puede pedir sin este ingrediente" />
-                          )}
-                        </div>
-                        <div className="text-center px-3">
-                          {checked && (
-                            <input type="checkbox" checked={sel?.es_opcional ?? false}
-                              onChange={e => setIngSelOpcional(i.id, e.target.checked)}
-                              className="w-4 h-4 accent-amber-500" title="El cliente puede pedirlo como extra adicional" />
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          }
-        </div>
-      )}
 
       {/* Ingredientes MANUFACTURADO */}
       {tipo === 'MANUFACTURADO' && (
@@ -409,14 +370,11 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
               </div>
               <div className="flex items-center justify-between bg-purple-100 dark:bg-purple-900/30 rounded-xl px-4 py-3">
                 <div>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wide">Precio sugerido</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wide">Precio de venta</p>
                   <p className="text-xl font-bold text-purple-800 dark:text-purple-200">${precioSugerido.toFixed(2)}</p>
                   <p className="text-xs text-purple-500 dark:text-purple-400">= ${costoTotal.toFixed(2)} × (1 + {margen}%)</p>
                 </div>
-                <button type="button" onClick={() => { setPrecio(precioSugerido.toFixed(2)); markDirty() }}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition whitespace-nowrap">
-                  Aplicar como precio base
-                </button>
+                <span className="text-xs text-purple-500 dark:text-purple-400 max-w-[140px] text-right">Calculado automáticamente desde la receta y el margen.</span>
               </div>
             </div>
           )}

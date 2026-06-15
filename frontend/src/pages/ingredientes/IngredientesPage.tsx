@@ -143,7 +143,7 @@ export default function IngredientesPage() {
             className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-semibold px-4 py-2.5 rounded-xl transition border border-emerald-200 dark:border-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed">
             {exporting ? '⏳ Exportando...' : '📥 Excel'}
           </button>
-          {isAdmin && (
+          {puedeGestionarStock && (
             <button onClick={openNew} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition">
               <span className="text-lg">+</span> Nuevo ingrediente
             </button>
@@ -181,7 +181,7 @@ export default function IngredientesPage() {
                   <th className="text-center px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
                   <SortableHeader label="Alérgeno" field="es_alergeno" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center" />
                   <th className="text-center px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                  {isAdmin && <th className="text-center px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>}
+                  {puedeGestionarStock && <th className="text-center px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
@@ -219,27 +219,29 @@ export default function IngredientesPage() {
                         : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300">Inactivo</span>
                       }
                     </td>
-                    {isAdmin && (
+                    {puedeGestionarStock && (
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {ing.activo ? (
                             <>
-                              {puedeGestionarStock && (
-                                <button onClick={() => openStockModal(ing)} disabled={actionLoadingId === ing.id}
-                                  className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-2.5 py-1.5 rounded-lg transition disabled:opacity-40" title="Reponer stock">
-                                  📦 Stock
-                                </button>
-                              )}
+                              <button onClick={() => openStockModal(ing)} disabled={actionLoadingId === ing.id}
+                                className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-2.5 py-1.5 rounded-lg transition disabled:opacity-40" title="Reponer stock">
+                                📦 Stock
+                              </button>
                               <button onClick={() => openEdit(ing)} disabled={actionLoadingId === ing.id}
                                 className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-3 py-1.5 rounded-lg transition disabled:opacity-40">Editar</button>
-                              <button onClick={() => setDeleteTarget(ing)} disabled={actionLoadingId === ing.id}
-                                className="text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1.5 rounded-lg transition disabled:opacity-40">Desactivar</button>
+                              {isAdmin && (
+                                <button onClick={() => setDeleteTarget(ing)} disabled={actionLoadingId === ing.id}
+                                  className="text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1.5 rounded-lg transition disabled:opacity-40">Desactivar</button>
+                              )}
                             </>
                           ) : (
-                            <button onClick={() => handleReactivar(ing)} disabled={actionLoadingId === ing.id}
-                              className="text-xs font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 px-3 py-1.5 rounded-lg transition disabled:opacity-40 min-w-[72px]">
-                              {actionLoadingId === ing.id ? <span className="flex items-center gap-1 justify-center"><svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg></span> : 'Reactivar'}
-                            </button>
+                            isAdmin && (
+                              <button onClick={() => handleReactivar(ing)} disabled={actionLoadingId === ing.id}
+                                className="text-xs font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 px-3 py-1.5 rounded-lg transition disabled:opacity-40 min-w-[72px]">
+                                {actionLoadingId === ing.id ? <span className="flex items-center gap-1 justify-center"><svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg></span> : 'Reactivar'}
+                              </button>
+                            )
                           )}
                         </div>
                       </td>
@@ -262,7 +264,7 @@ export default function IngredientesPage() {
         <div className="text-center py-16 text-gray-400 dark:text-gray-500">
           <p className="text-5xl mb-3">🧂</p>
           <p className="font-medium text-lg">No hay ingredientes registrados</p>
-          {isAdmin && <button onClick={openNew} className="mt-3 text-blue-500 underline text-sm">Crear el primero</button>}
+          {puedeGestionarStock && <button onClick={openNew} className="mt-3 text-blue-500 underline text-sm">Crear el primero</button>}
         </div>
       )}
 

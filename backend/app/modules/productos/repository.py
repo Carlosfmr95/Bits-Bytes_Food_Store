@@ -45,10 +45,15 @@ class ProductoRepository(BaseRepository[Producto]):
         limit: int = 20,
         incluir_inactivos: bool = False,
         nombre: Optional[str] = None,
+        categoria_id: Optional[int] = None,
         sort_by: str = "nombre",
         sort_dir: str = "asc",
     ) -> List[Producto]:
         q = select(Producto)
+        if categoria_id is not None:
+            q = q.join(
+                ProductoCategoria, ProductoCategoria.producto_id == Producto.id
+            ).where(ProductoCategoria.categoria_id == categoria_id)
         if not incluir_inactivos:
             q = q.where(Producto.deleted_at == None)  
         if nombre:
@@ -62,8 +67,13 @@ class ProductoRepository(BaseRepository[Producto]):
         self,
         incluir_inactivos: bool = False,
         nombre: Optional[str] = None,
+        categoria_id: Optional[int] = None,
     ) -> int:
         q = select(func.count(Producto.id))
+        if categoria_id is not None:
+            q = q.join(
+                ProductoCategoria, ProductoCategoria.producto_id == Producto.id
+            ).where(ProductoCategoria.categoria_id == categoria_id)
         if not incluir_inactivos:
             q = q.where(Producto.deleted_at == None)  
         if nombre:

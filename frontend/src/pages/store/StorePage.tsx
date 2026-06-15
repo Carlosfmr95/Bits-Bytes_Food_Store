@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getProductosApi } from '../../api/productos'
+import { getCategoriasApi } from '../../api/categorias'
 import type { Producto } from '../../models/producto'
 import Pagination from '../../components/ui/Pagination'
 import Toast, { useToast } from '../../components/ui/Toast'
@@ -81,15 +82,24 @@ export default function StorePage() {
 
   const [busqueda,   setBusqueda]   = useState('')
   const [page,       setPage]       = useState(1)
+  const [categoriaId, setCategoriaId] = useState<number | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [busquedaActiva, setBusquedaActiva] = useState('')
 
+  // Catálogo de categorías para el filtro (solo activas).
+  const categoriasQuery = useQuery({
+    queryKey: qk.categorias.list(false),
+    queryFn: () => getCategoriasApi(1, 100, false),
+  })
+  const categorias = categoriasQuery.data?.items ?? []
+
   // Catálogo público: no requiere sesión, así que la query siempre está activa.
   const productosQuery = useQuery({
-    queryKey: qk.productos.publico(page, busquedaActiva),
+    queryKey: qk.productos.publico(page, busquedaActiva, categoriaId),
     queryFn: () => getProductosApi(
       page, PAGE_SIZE, false, busquedaActiva || undefined,
+      'nombre', 'asc', categoriaId ?? undefined,
     ),
   })
 
@@ -107,6 +117,11 @@ export default function StorePage() {
       setBusquedaActiva(value)
       setPage(1)
     }, 400)
+  }
+
+  const handleCategoria = (value: string) => {
+    setCategoriaId(value ? Number(value) : null)
+    setPage(1)
   }
 
   const handleAgregar = (producto: Producto) => {
@@ -130,8 +145,8 @@ export default function StorePage() {
         </Link>
       </div>
 
-      {/* Búsqueda */}
-      <div className="mb-6">
+      {/* Búsqueda + filtro por categoría */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           placeholder="Buscar productos..."
@@ -142,6 +157,18 @@ export default function StorePage() {
             placeholder-gray-400 dark:placeholder-gray-500
             focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
         />
+        <select
+          value={categoriaId ?? ''}
+          onChange={e => handleCategoria(e.target.value)}
+          className="w-full sm:w-56 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5
+            bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100
+            focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+        >
+          <option value="">Todas las categorías</option>
+          {categorias.map(c => (
+            <option key={c.id} value={c.id}>{c.nombre}</option>
+          ))}
+        </select>
       </div>
 
       {/* Estado de error */}
@@ -169,12 +196,12 @@ export default function StorePage() {
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           <p className="text-5xl mb-4">🔍</p>
           <p className="font-semibold">No se encontraron productos</p>
-          {busquedaActiva && (
+          {(busquedaActiva || categoriaId) && (
             <button
-              onClick={() => { setBusqueda(''); setBusquedaActiva(''); setPage(1) }}
+              onClick={() => { setBusqueda(''); setBusquedaActiva(''); setCategoriaId(null); setPage(1) }}
               className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
-              Limpiar búsqueda
+              Limpiar filtros
             </button>
           )}
         </div>

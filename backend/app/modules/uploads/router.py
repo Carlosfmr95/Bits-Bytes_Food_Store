@@ -2,7 +2,7 @@
 """
 Router del módulo uploads — gestión de imágenes en Cloudinary (proxy).
 APIRouter sin prefix (el prefix /api/v1/uploads se aplica en main.py).
-Solo ADMIN puede subir o eliminar imágenes.
+Subida de imágenes: ADMIN y STOCK. Eliminación: solo ADMIN.
 """
 from urllib.parse import unquote
 
@@ -23,13 +23,13 @@ def get_service() -> UploadService:
     "/imagen",
     response_model=CloudinaryResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Subir una imagen a Cloudinary [ADMIN]",
+    summary="Subir una imagen a Cloudinary [ADMIN, STOCK]",
 )
 async def subir_imagen(
     file: UploadFile = File(...),
     folder: str = Form(default=""),
     svc: UploadService = Depends(get_service),
-    _=Depends(require_role(["ADMIN"])),
+    _=Depends(require_role(["ADMIN", "STOCK"])),
 ) -> CloudinaryResponse:
     """Recibe multipart/form-data (file + folder), valida y sube a Cloudinary."""
     contenido = await file.read()

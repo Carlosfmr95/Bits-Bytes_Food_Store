@@ -5,10 +5,19 @@ import { useAuth, useAuthStore } from '../store/authStore'
 import type { RolCodigo } from '../models/auth'
 
 
-/** Destino post-login: el cliente va al catálogo; el staff, a la gestión de pedidos. */
+/**
+ * Destino post-login según rol:
+ * - CLIENT puro → catálogo de la tienda.
+ * - STOCK (sin ADMIN/PEDIDOS) → gestión de productos, que es su área de trabajo.
+ * - ADMIN / PEDIDOS → gestión de pedidos.
+ */
 function destinoPorRol(roles: RolCodigo[]): string {
   const esClient = roles.length === 1 && roles.includes('CLIENT')
-  return esClient ? '/store' : '/pedidos'
+  if (esClient) return '/store'
+  const esStockPuro =
+    roles.includes('STOCK') && !roles.some(r => r === 'ADMIN' || r === 'PEDIDOS')
+  if (esStockPuro) return '/productos'
+  return '/pedidos'
 }
 
 export default function LoginPage() {

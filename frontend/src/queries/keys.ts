@@ -34,8 +34,8 @@ export const qk = {
   productos: {
     all: ['productos'] as const,
     list: (params: ListaParams) => ['productos', 'list', params] as const,
-    publico: (page: number, busqueda: string) =>
-      ['productos', 'publico', { page, busqueda }] as const,
+    publico: (page: number, busqueda: string, categoriaId: number | null = null) =>
+      ['productos', 'publico', { page, busqueda, categoriaId }] as const,
     detail: (id: number) => ['productos', 'detail', id] as const,
   },
 

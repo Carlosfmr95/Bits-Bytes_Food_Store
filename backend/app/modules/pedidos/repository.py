@@ -19,43 +19,74 @@ class PedidoRepository(BaseRepository[Pedido]):
     def __init__(self, session: Session) -> None:
         super().__init__(session, Pedido)
 
+    # ── Filtros compartidos ───────────────────────────────────────────────────
+
+    @staticmethod
+    def _aplicar_filtros(stmt, estado: str | None, busqueda: str | None):
+        """
+        Aplica los filtros opcionales de listado:
+        - estado:   match exacto por estado_codigo (FSM).
+        - busqueda: match parcial case-insensitive por código de pedido.
+        Compartido entre las queries de datos y de conteo para que paginación
+        y total queden siempre consistentes.
+        """
+        if estado:
+            stmt = stmt.where(Pedido.estado_codigo == estado)
+        if busqueda:
+            stmt = stmt.where(Pedido.codigo.ilike(f"%{busqueda}%"))
+        return stmt
+
     # ── Listado general ───────────────────────────────────────────────────────
 
-    def get_all_activos(self, offset: int = 0, limit: int = 20) -> list[Pedido]:
+    def get_all_activos(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        estado: str | None = None,
+        busqueda: str | None = None,
+    ) -> list[Pedido]:
         """Todos los pedidos activos — para roles ADMIN / PEDIDOS ."""
-        return list(self.session.exec(
-            select(Pedido)
-            .where(Pedido.deleted_at == None)           # noqa: E711
-            .order_by(Pedido.created_at.desc())
-            .offset(offset).limit(limit)
-        ).all())
+        stmt = select(Pedido).where(Pedido.deleted_at == None)  # noqa: E711
+        stmt = self._aplicar_filtros(stmt, estado, busqueda)
+        stmt = stmt.order_by(Pedido.created_at.desc()).offset(offset).limit(limit)
+        return list(self.session.exec(stmt).all())
 
-    def count_activos(self) -> int:
-        return self.session.exec(
-            select(func.count(Pedido.id)).where(Pedido.deleted_at == None)  # noqa: E711
-        ).one()
+    def count_activos(
+        self, estado: str | None = None, busqueda: str | None = None
+    ) -> int:
+        stmt = select(func.count(Pedido.id)).where(Pedido.deleted_at == None)  # noqa: E711
+        stmt = self._aplicar_filtros(stmt, estado, busqueda)
+        return self.session.exec(stmt).one()
 
     # ── Filtrado por usuario (CLIENT) ─────────────────────────────────────────
 
     def get_all_by_usuario(
-        self, usuario_id: int, offset: int = 0, limit: int = 20
+        self,
+        usuario_id: int,
+        offset: int = 0,
+        limit: int = 20,
+        estado: str | None = None,
+        busqueda: str | None = None,
     ) -> list[Pedido]:
         """
         Pedidos activos de un usuario específico.
         Usado cuando el caller tiene solo rol CLIENT.
         """
-        return list(self.session.exec(
-            select(Pedido)
-            .where(Pedido.deleted_at == None, Pedido.usuario_id == usuario_id)  # noqa: E711
-            .order_by(Pedido.created_at.desc())
-            .offset(offset).limit(limit)
-        ).all())
+        stmt = select(Pedido).where(
+            Pedido.deleted_at == None, Pedido.usuario_id == usuario_id  # noqa: E711
+        )
+        stmt = self._aplicar_filtros(stmt, estado, busqueda)
+        stmt = stmt.order_by(Pedido.created_at.desc()).offset(offset).limit(limit)
+        return list(self.session.exec(stmt).all())
 
-    def count_by_usuario(self, usuario_id: int) -> int:
-        return self.session.exec(
-            select(func.count(Pedido.id))
-            .where(Pedido.deleted_at == None, Pedido.usuario_id == usuario_id)  # noqa: E711
-        ).one()
+    def count_by_usuario(
+        self, usuario_id: int, estado: str | None = None, busqueda: str | None = None
+    ) -> int:
+        stmt = select(func.count(Pedido.id)).where(
+            Pedido.deleted_at == None, Pedido.usuario_id == usuario_id  # noqa: E711
+        )
+        stmt = self._aplicar_filtros(stmt, estado, busqueda)
+        return self.session.exec(stmt).one()
 
     # ── Detalles ──────────────────────────────────────────────────────────────
 

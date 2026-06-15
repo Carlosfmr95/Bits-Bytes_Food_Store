@@ -62,6 +62,7 @@ def list_productos(
     size: Annotated[int, Query(ge=1, le=10000)] = 100,
     incluir_inactivos: bool = False,  # ignorado silenciosamente — siempre False
     nombre: Optional[str] = None,
+    categoria_id: Annotated[Optional[int], Query(ge=1)] = None,
     sort_by: str = "nombre",
     sort_dir: str = "asc",
     svc: ProductoService = Depends(get_service),
@@ -72,6 +73,7 @@ def list_productos(
         offset=offset_de(page, size), limit=size,
         incluir_inactivos=False,  # forzado: catálogo público solo muestra activos
         nombre=nombre,
+        categoria_id=categoria_id,
         sort_by=safe_sort_by, sort_dir=safe_sort_dir,
     )
     return paginar(result.data, result.total, page, size)

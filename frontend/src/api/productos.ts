@@ -9,6 +9,7 @@ export const getProductosApi = (
   nombre?: string,
   sortBy = 'nombre',
   sortDir = 'asc',
+  categoriaId?: number,
 ) => {
   const params = new URLSearchParams({
     page: String(page),
@@ -18,6 +19,7 @@ export const getProductosApi = (
     sort_dir: sortDir,
   })
   if (nombre) params.set('nombre', nombre)
+  if (categoriaId) params.set('categoria_id', String(categoriaId))
   return http.get<ProductoList>(`/productos/?${params}`).then(r => r.data)
 }
 

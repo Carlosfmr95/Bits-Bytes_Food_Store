@@ -102,16 +102,22 @@ async def create_pedido(
 def list_pedidos(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
+    estado: Annotated[str | None, Query(max_length=20)] = None,
+    busqueda: Annotated[str | None, Query(max_length=20)] = None,
     svc: PedidoService = Depends(get_service),
     current=Depends(get_current_user),
 ) -> Paginated[PedidoPublic]:
     """
     Lista pedidos activos.
     si el caller solo tiene rol CLIENT, devuelve únicamente sus propios pedidos.
+    Filtros opcionales: estado (FSM) y busqueda (por código de pedido).
     """
     user, roles = current
+    estado_norm = estado.strip().upper() if estado and estado.strip() else None
+    busqueda_norm = busqueda.strip() if busqueda and busqueda.strip() else None
     result: PedidoList = svc.get_all(
         offset=offset_de(page, size), limit=size, usuario_id=user.id, roles=roles,
+        estado=estado_norm, busqueda=busqueda_norm,
     )
     return paginar(result.data, result.total, page, size)
 
