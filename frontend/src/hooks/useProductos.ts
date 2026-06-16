@@ -27,18 +27,19 @@ export function useProductos() {
 
   const [page, setPageState] = useState(1)
   const [incluirInactivos, setIncluirInactivos] = useState(false)
+  const [categoriaId, setCategoriaId] = useState<number | null>(null)
   const [seleccionado, setSeleccionado] = useState<Producto | null>(null)
   const [busqueda, setBusquedaState] = useState('')
   const [sortBy, setSortBy] = useState<ProductoSortBy>('nombre')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
-  const params = { page, busqueda, sortBy, sortDir, incluirInactivos }
+  const params = { page, busqueda, sortBy, sortDir, incluirInactivos, categoriaId }
 
   const listQuery = useQuery({
     queryKey: qk.productos.list(params),
     queryFn: () => getProductosApi(
       page, PAGE_SIZE, incluirInactivos, busqueda || undefined,
-      sortBy, sortDir,
+      sortBy, sortDir, categoriaId ?? undefined,
     ),
     enabled,
   })
@@ -69,6 +70,11 @@ export function useProductos() {
 
   const toggleInactivos = () => {
     setIncluirInactivos(v => !v)
+    setPageState(1)
+  }
+
+  const setCategoria = (id: number | null) => {
+    setCategoriaId(id)
     setPageState(1)
   }
 
@@ -111,5 +117,6 @@ export function useProductos() {
     agregar, editar, desactivar, reactivar, recargar,
     busqueda, setBusqueda,
     sortBy, sortDir, setSort,
+    categoriaId, setCategoria,
   }
 }

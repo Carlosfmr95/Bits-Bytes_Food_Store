@@ -57,6 +57,7 @@ export const qk = {
     mis: (page: number) => ['pedidos', 'mis', { page }] as const,
     detail: (id: number) => ['pedidos', 'detail', id] as const,
     formasPago: ['pedidos', 'formas-pago'] as const,
+    config: ['pedidos', 'config'] as const,
   },
 
   usuarios: {

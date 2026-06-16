@@ -24,6 +24,12 @@ class FormaPagoPublic(SQLModel):
     habilitado: bool
 
 
+class PedidoConfigPublic(SQLModel):
+    """Parámetros públicos del checkout. costo_envio es el cargo fijo que el
+    backend aplica al total (lo que cobra MercadoPago)."""
+    costo_envio: MoneyDecimal
+
+
 class EstadoPedidoPublic(SQLModel):
     codigo: str
     descripcion: str

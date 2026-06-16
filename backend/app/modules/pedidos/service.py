@@ -14,7 +14,7 @@ Stock desde ingredientes:
 
 Decimal:
 - Toda la aritmética monetaria usa Decimal para evitar errores de punto flotante.
-  costo_envio = Decimal("50.00"), descuento = Decimal("0.00"), etc.
+  costo_envio = settings.COSTO_ENVIO, descuento = Decimal("0.00"), etc.
 """
 import json
 from datetime import datetime, timezone
@@ -23,6 +23,7 @@ from decimal import Decimal
 from sqlmodel import Session
 
 from app.core.codigo import generar_codigo
+from app.core.config import settings
 from app.core.websocket import manager
 from app.core.exceptions.custom_exceptions import (
     AuthorizationError,
@@ -240,7 +241,7 @@ class PedidoService:
 
             # 3. Calcular descuento y costo_envio — Decimal fijos
             descuento   = Decimal("0.00")
-            costo_envio = Decimal("50.00") if data.direccion_id is not None else Decimal("0.00")
+            costo_envio = settings.COSTO_ENVIO if data.direccion_id is not None else Decimal("0.00")
             total       = (subtotal - descuento + costo_envio).quantize(_QUANT)
 
             # 4. Snapshot de dirección
@@ -395,7 +396,7 @@ class PedidoService:
             if data.items is not None:
                 items_validados = self._validar_stock_items(uow, data.items)
                 subtotal = sum(iv[2] for iv in items_validados).quantize(_QUANT)
-                costo_envio = Decimal("50.00") if (
+                costo_envio = settings.COSTO_ENVIO if (
                     data.direccion_id if data.direccion_id is not None else pedido.direccion_id
                 ) is not None else Decimal("0.00")
                 total = (subtotal - pedido.descuento + costo_envio).quantize(_QUANT)
@@ -439,7 +440,7 @@ class PedidoService:
                 })
                 # Recalcular costo_envio si items no vino en este request
                 if data.items is None:
-                    pedido.costo_envio = Decimal("50.00")
+                    pedido.costo_envio = settings.COSTO_ENVIO
                     pedido.total = (pedido.subtotal - pedido.descuento + pedido.costo_envio).quantize(_QUANT)
 
             # Actualizar forma de pago

@@ -17,6 +17,14 @@ export const getFormasPagoApi = () =>
 export const getFormasPagoPublicApi = () =>
   http.get<FormaPago[]>('/pedidos/formas-pago').then(r => r.data)
 
+export interface PedidoConfig {
+  costo_envio: string
+}
+
+/** Parámetros de checkout (costo de envío). Fuente de verdad: backend. */
+export const getPedidoConfigApi = () =>
+  http.get<PedidoConfig>('/pedidos/config').then(r => r.data)
+
 export const getPedidosApi = (
   page = 1,
   size = 10,

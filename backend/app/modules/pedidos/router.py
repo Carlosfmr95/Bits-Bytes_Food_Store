@@ -15,6 +15,7 @@ from fastapi import (
 from jose import JWTError
 from sqlmodel import Session
 
+from app.core.config import settings
 from app.core.database import engine, get_session
 from app.core.pagination import Paginated, paginar, offset_de
 from app.core.websocket import manager
@@ -27,6 +28,7 @@ from app.modules.pedidos.schemas import (
     FormaPagoPublic,
     HistorialPublic,
     PedidoCreate,
+    PedidoConfigPublic,
     PedidoList,
     PedidoPublic,
     PedidoUpdate,
@@ -53,6 +55,17 @@ def list_formas_pago(
 ) -> List[FormaPagoPublic]:
     repo = CatalogoRepository(session)
     return [FormaPagoPublic.model_validate(f) for f in repo.get_formas_pago_habilitadas()]
+
+
+# GET /config público: expone parámetros del checkout (costo de envío) para que
+# el frontend muestre el mismo monto que el backend cobra. Fuente de verdad única.
+@router.get(
+    "/config",
+    response_model=PedidoConfigPublic,
+    summary="Parámetros de checkout (costo de envío) [público]",
+)
+def get_pedido_config() -> PedidoConfigPublic:
+    return PedidoConfigPublic(costo_envio=settings.COSTO_ENVIO)
 
 
 # ── CRUD Pedidos ──────────────────────────────────────────────────────────────

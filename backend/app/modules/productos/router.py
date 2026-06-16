@@ -5,7 +5,9 @@ from sqlmodel import Session
 
 from app.core.database import get_session
 from app.core.pagination import Paginated, paginar, offset_de
-from app.modules.auth.dependencies import get_current_user, require_role
+from app.modules.auth.dependencies import (
+    get_current_user, get_current_user_optional, require_role,
+)
 
 from app.modules.productos.schemas import (
     AplicarMargenRequest, AplicarMargenResponse,
@@ -54,24 +56,31 @@ def create_producto(
 
 
 # BACKEND-2: GET /productos público.
-# incluir_inactivos se acepta en la firma para compatibilidad pero se ignora:
-# siempre se devuelven solo productos activos y disponibles.
+# El catálogo es público y por defecto solo devuelve productos activos.
+# incluir_inactivos solo se respeta si el solicitante está autenticado como
+# ADMIN o STOCK (gestión); para anónimos o CLIENT se fuerza a False.
 @router.get("/", response_model=Paginated[ProductoPublic], summary="Listar productos [público]")
 def list_productos(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=10000)] = 100,
-    incluir_inactivos: bool = False,  # ignorado silenciosamente — siempre False
+    incluir_inactivos: bool = False,
     nombre: Optional[str] = None,
     categoria_id: Annotated[Optional[int], Query(ge=1)] = None,
     sort_by: str = "nombre",
     sort_dir: str = "asc",
     svc: ProductoService = Depends(get_service),
+    current=Depends(get_current_user_optional),
 ) -> Paginated[ProductoPublic]:
     safe_sort_by = sort_by if sort_by in _SORT_BY_VALUES else "nombre"
     safe_sort_dir = sort_dir if sort_dir in ("asc", "desc") else "asc"
+
+    roles = current[1] if current else []
+    puede_gestionar = any(r in ("ADMIN", "STOCK") for r in roles)
+    incluir = incluir_inactivos and puede_gestionar
+
     result: ProductoList = svc.get_all(
         offset=offset_de(page, size), limit=size,
-        incluir_inactivos=False,  # forzado: catálogo público solo muestra activos
+        incluir_inactivos=incluir,
         nombre=nombre,
         categoria_id=categoria_id,
         sort_by=safe_sort_by, sort_dir=safe_sort_dir,

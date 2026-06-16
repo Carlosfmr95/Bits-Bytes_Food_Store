@@ -1,5 +1,7 @@
 # app/core/config.py
 import sys
+from decimal import Decimal
+
 from pydantic import computed_field
 from pydantic_settings import BaseSettings
 
@@ -44,6 +46,12 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""              # API key
     CLOUDINARY_API_SECRET: str = ""           # API secret (NUNCA se expone al frontend)
     CLOUDINARY_FOLDER: str = "foodstore"      # carpeta destino dentro de Cloudinary
+
+    # Pedidos — costo de envío fijo (v1). Fuente de verdad única del cargo:
+    # lo aplica el backend al total del pedido (lo que MercadoPago cobra) y lo
+    # consume el frontend en el checkout vía GET /pedidos/config para mostrar
+    # exactamente el mismo monto. Override por env: COSTO_ENVIO.
+    COSTO_ENVIO: Decimal = Decimal("5000.00")
 
     @computed_field
     @property

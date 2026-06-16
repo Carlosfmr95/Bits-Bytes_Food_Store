@@ -4,14 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCarrito } from '../../store/carritoStore'
 import { getDireccionesApi } from '../../api/direcciones'
-import { getFormasPagoPublicApi, createPedidoApi } from '../../api/pedidos'
+import { getFormasPagoPublicApi, createPedidoApi, getPedidoConfigApi } from '../../api/pedidos'
 import type { Direccion } from '../../models/direccion'
 import type { FormaPago, PedidoCreate } from '../../models/pedido'
 import Toast, { useToast } from '../../components/ui/Toast'
 import { qk } from '../../queries/keys'
 import { crearPreferenciaApi } from '../../api/pagos'
-
-const COSTO_ENVIO = 5000
 
 function formatPrecio(n: number): string {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n)
@@ -42,10 +40,15 @@ export default function CheckoutPage() {
     queryKey: qk.pedidos.formasPago,
     queryFn: () => getFormasPagoPublicApi(),
   })
+  const configQuery = useQuery({
+    queryKey: qk.pedidos.config,
+    queryFn: () => getPedidoConfigApi(),
+    staleTime: 1000 * 60 * 60,  // el costo de envío cambia rara vez
+  })
 
   const direcciones: Direccion[] = direccionesQuery.data?.items ?? []
   const formasPago: FormaPago[] = formasPagoQuery.data ?? []
-  const loadingData = direccionesQuery.isLoading || formasPagoQuery.isLoading
+  const loadingData = direccionesQuery.isLoading || formasPagoQuery.isLoading || configQuery.isLoading
   const errorData = (direccionesQuery.error || formasPagoQuery.error)
     ? 'Error al cargar datos del checkout.'
     : ''
@@ -58,7 +61,9 @@ export default function CheckoutPage() {
     }
   }, [formasPago, formaPagoCodigo])
 
-  const costoEnvio = direccionId !== null ? COSTO_ENVIO : 0
+  // Costo de envío: fuente de verdad en el backend (lo que MercadoPago cobra).
+  const costoEnvioBase = Number(configQuery.data?.costo_envio ?? 0)
+  const costoEnvio = direccionId !== null ? costoEnvioBase : 0
   const total = totalPrecio + costoEnvio
 
   const crearMut = useMutation({

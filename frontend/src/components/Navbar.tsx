@@ -66,7 +66,6 @@ export default function Navbar() {
         links.push({ to: '/direcciones', label: '📍 Direcciones' })
       }
     } else if (esClient) {
-      links.push({ to: '/productos',   label: '🍽️ Productos' })
       links.push({ to: '/store/mis-pedidos', label: '📋 Mis Pedidos' })
       links.push({ to: '/direcciones', label: '📍 Mis Direcciones' })
     }

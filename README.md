@@ -175,9 +175,9 @@ Build de producción: `npm run build` (genera `dist/`).
 
 El pago usa **Checkout Pro** con confirmación por webhook (IPN). Para probarlo end-to-end:
 
-### 7.1 Obtener credenciales TEST
+### 7.1 Obtener credenciales de prueba
 1. Entrá a [MercadoPago Developers](https://www.mercadopago.com.ar/developers) → tus integraciones → creá una aplicación.
-2. En **Credenciales de prueba** copiá el **Access Token** (`TEST-...`) y la **Public Key** (`TEST-...`).
+2. En **Credenciales de prueba** copiá el **Access Token** y la **Public Key**.
 
 ### 7.2 Exponer el webhook con ngrok
 MercadoPago necesita una URL pública para notificar el resultado del pago. En local se usa ngrok:
@@ -190,8 +190,8 @@ Copiá la URL `https://<algo>.ngrok-free.app` que te da.
 
 ### 7.3 Completar el `.env` del backend
 ```env
-MP_ACCESS_TOKEN=TEST-xxxxxxxx
-MP_PUBLIC_KEY=TEST-xxxxxxxx
+MP_ACCESS_TOKEN=
+MP_PUBLIC_KEY=
 NGROK_URL=https://<algo>.ngrok-free.app
 MP_WEBHOOK_URL=https://<algo>.ngrok-free.app/api/v1/pagos/webhook
 FRONTEND_URL=http://localhost:5174
@@ -199,7 +199,7 @@ FRONTEND_URL=http://localhost:5174
 
 ### 7.4 Completar el `.env` del frontend
 ```env
-VITE_MP_PUBLIC_KEY=TEST-xxxxxxxx
+VITE_MP_PUBLIC_KEY=
 ```
 (Si `VITE_MP_PUBLIC_KEY` queda vacía, el botón de pago se deshabilita y el resto de la app funciona igual.)
 
@@ -242,9 +242,9 @@ docker exec -it foodstore_db createdb -U postgres food_store_test_db
 
 # 2) Indicar la URL de la base de test (ajustá usuario/clave a tu Postgres)
 #    Linux/macOS:
-export TEST_DATABASE_URL="postgresql://postgres:password@localhost:5433/food_store_test_db"
+export TEST_DATABASE_URL="postgresql://postgres:password@localhost:5432/food_store_test_db"
 #    Windows (PowerShell):
-#    $env:TEST_DATABASE_URL="postgresql://postgres:password@localhost:5433/food_store_test_db"
+#    $env:TEST_DATABASE_URL="postgresql://postgres:password@localhost:5432/food_store_test_db"
 
 # 3) Correr la suite
 pytest                  # todos
@@ -270,7 +270,7 @@ pytest --cov=app --cov-report=term-missing
 | Variable | Descripción | Ejemplo |
 |---|---|---|
 | `postgres_user` / `postgres_password` | credenciales de PostgreSQL | `postgres` / `password` |
-| `postgres_db` / `postgres_host` / `postgres_port` | base, host y puerto | `food_store_db` / `localhost` / `5433` |
+| `postgres_db` / `postgres_host` / `postgres_port` | base, host y puerto | `food_store_db` / `localhost` / `5432` |
 | `SECRET_KEY` | clave para firmar JWT (mín. 32 chars) | `openssl rand -hex 32` |
 | `ALGORITHM` | algoritmo JWT | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | expiración del access token | `30` |
@@ -279,7 +279,7 @@ pytest --cov=app --cov-report=term-missing
 | `RATE_LIMIT_AUTH_PER_MINUTE` | recarga de cupo de auth por minuto | `10` |
 | `RATE_LIMIT_AUTH_BURST` | intentos fallidos tolerados antes del bloqueo | `5` |
 | `RATE_LIMIT_AUTH_LOCKOUT_SECONDS` | duración del bloqueo tras agotar el cupo (seg.) | `900` |
-| `MP_ACCESS_TOKEN` / `MP_PUBLIC_KEY` | credenciales TEST de MercadoPago | `TEST-...` |
+| `MP_ACCESS_TOKEN` / `MP_PUBLIC_KEY` | credenciales TEST de MercadoPago | `APP_USR-` |
 | `NGROK_URL` / `MP_WEBHOOK_URL` | URL pública y endpoint del webhook | `https://...ngrok-free.app` |
 | `FRONTEND_URL` | redirect tras el checkout | `http://localhost:5174` |
 | `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | credenciales Cloudinary | — |

@@ -48,7 +48,7 @@ function StockBadge({ stock, disponible, activo, tipo }: { stock: number; dispon
 }
 
 export default function ProductosPage() {
-  const { productos, loading, total, page, pageSize, totalPages, setPage, incluirInactivos, toggleInactivos, agregar, editar, desactivar, reactivar, busqueda, setBusqueda, sortBy, sortDir, setSort } = useProductos()
+  const { productos, loading, total, page, pageSize, totalPages, setPage, incluirInactivos, toggleInactivos, agregar, editar, desactivar, reactivar, busqueda, setBusqueda, sortBy, sortDir, setSort, categoriaId, setCategoria } = useProductos()
   const { data: ingData } = useQuery({
   queryKey: ['ingredientes', 'todos'],
   queryFn: () => getIngredientesApi(1, 1000),
@@ -65,7 +65,6 @@ const ingredientes = ingData?.items ?? []
   const [modalOpen, setModalOpen]             = useState(false)
   const [editTarget, setEditTarget]           = useState<Producto | null>(null)
   const [deleteTarget, setDeleteTarget]       = useState<Producto | null>(null)
-  const [filterCat, setFilterCat]             = useState('')
   const [exporting, setExporting]             = useState(false)
   const [formDirty, setFormDirty]             = useState(false)
   const [confirmDiscard, setConfirmDiscard]   = useState(false)
@@ -73,7 +72,6 @@ const ingredientes = ingData?.items ?? []
   const [confirmLoading, setConfirmLoading]   = useState(false)
 
   const colCount = puedeGestionar ? 9 : isClient ? 3 : 8
-  const filtrados = filterCat ? productos.filter(p => p.categorias.some(c => String(c.id) === filterCat)) : productos
 
   const openNew  = () => { setEditTarget(null); setFormDirty(false); setModalOpen(true) }
   const openEdit = (p: Producto) => { setEditTarget(p); setFormDirty(false); setModalOpen(true) }
@@ -106,7 +104,7 @@ const ingredientes = ingData?.items ?? []
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await getProductosApi(1, 9999, incluirInactivos, busqueda || undefined)
+      const res = await getProductosApi(1, 9999, incluirInactivos, busqueda || undefined, sortBy, sortDir, categoriaId ?? undefined)
       const rows = res.items.map(p => ({ 'Código': p.codigo, 'Nombre': p.nombre, 'Descripción': p.descripcion ?? '', 'Tipo': p.tipo, 'Precio Base': p.precio_base, 'Precio Costo': p.precio_costo, 'Stock': p.stock_cantidad, 'Disponible': p.disponible ? 'Sí' : 'No', 'Cat. Principal': p.categorias.find(c => c.es_principal)?.nombre ?? '', 'Categorías': p.categorias.map(c => c.nombre).join(', '), 'Ingredientes': p.ingredientes.map(i => i.nombre).join(', '), 'Estado': p.activo ? 'Activo' : 'Inactivo' }))
       exportToExcel(rows, `productos_${new Date().toISOString().slice(0, 10)}`, 'Productos')
       addToast(`${rows.length} productos exportados`, 'success')
@@ -144,7 +142,7 @@ const ingredientes = ingData?.items ?? []
       <div className="flex flex-col sm:flex-row gap-3 mb-5 flex-wrap">
         <input type="text" placeholder="Buscar por código o nombre..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
           className="flex-1 sm:max-w-xs border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500" />
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+        <select value={categoriaId ?? ''} onChange={e => setCategoria(e.target.value ? Number(e.target.value) : null)}
           className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700">
           <option value="">Todas las categorías</option>
           {categorias.filter(c => c.activo).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -177,7 +175,7 @@ const ingredientes = ingData?.items ?? []
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {loading && Array.from({ length: pageSize }).map((_, i) => <SkeletonRow key={i} cols={colCount} />)}
-                {!loading && filtrados.map(p => {
+                {!loading && productos.map(p => {
                   const catPrincipal = p.categorias.find(c => c.es_principal)?.nombre ?? '—'
                   return (
                     <tr key={p.id} className={`transition ${!p.activo ? 'opacity-50 bg-gray-50 dark:bg-gray-700/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
@@ -244,12 +242,6 @@ const ingredientes = ingData?.items ?? []
               </tbody>
             </table>
           </div>
-          {!loading && filtrados.length === 0 && filterCat && (
-            <div className="text-center py-12 text-gray-400 dark:text-gray-500">
-              <p>Sin productos con esa categoría en esta página.</p>
-              <button onClick={() => setFilterCat('')} className="mt-2 text-sm text-blue-500 hover:underline">Limpiar filtro</button>
-            </div>
-          )}
           <div className="px-5 pb-4">
             <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPage={setPage} loading={loading} />
           </div>
@@ -258,9 +250,19 @@ const ingredientes = ingData?.items ?? []
 
       {!loading && total === 0 && (
         <div className="text-center py-16 text-gray-400 dark:text-gray-500">
-          <p className="text-5xl mb-3">🍽️</p>
-          <p className="font-medium text-lg">No hay productos registrados</p>
-          {puedeGestionar && <button onClick={openNew} className="mt-3 text-blue-500 underline text-sm">Crear el primero</button>}
+          {(categoriaId !== null || busqueda) ? (
+            <>
+              <p className="text-5xl mb-3">🔍</p>
+              <p className="font-medium text-lg">Sin productos para este filtro</p>
+              <button onClick={() => { setCategoria(null); setBusqueda('') }} className="mt-3 text-blue-500 underline text-sm">Limpiar filtros</button>
+            </>
+          ) : (
+            <>
+              <p className="text-5xl mb-3">🍽️</p>
+              <p className="font-medium text-lg">No hay productos registrados</p>
+              {puedeGestionar && <button onClick={openNew} className="mt-3 text-blue-500 underline text-sm">Crear el primero</button>}
+            </>
+          )}
         </div>
       )}
 

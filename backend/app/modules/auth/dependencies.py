@@ -40,6 +40,41 @@ class CookieBearerScheme(OAuth2PasswordBearer):
 # tokenUrl apunta al endpoint de login (usado por OpenAPI para documentación)
 _cookie_scheme = CookieBearerScheme(tokenUrl="/auth/login")
 
+# Variante sin auto_error: para endpoints públicos que ajustan su comportamiento
+# según el rol del usuario logueado (ej: el catálogo muestra inactivos solo a
+# ADMIN/STOCK), pero siguen respondiendo a usuarios anónimos.
+_cookie_scheme_optional = CookieBearerScheme(tokenUrl="/auth/login", auto_error=False)
+
+
+def get_current_user_optional(
+    token: str | None = Depends(_cookie_scheme_optional),
+    session: Session = Depends(get_session),
+) -> tuple[Usuario, list[str]] | None:
+    """
+    Igual que get_current_user pero NUNCA lanza 401: devuelve (usuario, roles) si
+    hay una sesión válida, o None si no hay token o el token es inválido/expirado.
+    Pensado para endpoints públicos cuya respuesta varía según el rol.
+    """
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+        if payload.get("type") != "access":
+            return None
+        email: str = payload.get("sub", "")
+        if not email:
+            return None
+    except (JWTError, ValueError):
+        return None
+
+    repo = AuthRepository(session)
+    user = repo.get_active_by_email(email)
+    if not user:
+        return None
+
+    roles = repo.get_roles(user.id)
+    return user, roles
+
 
 def get_current_user(
     token: str = Depends(_cookie_scheme),
