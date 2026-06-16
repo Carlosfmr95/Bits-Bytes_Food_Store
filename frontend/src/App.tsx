@@ -9,7 +9,6 @@ import CategoriasPage from './pages/categorias/CategoriasPage'
 import ProductosPage from './pages/productos/ProductosPage'
 import AplicarMargenPage from './pages/productos/AplicarMargenPage'
 import UsuariosPage from './pages/usuarios/UsuariosPage'
-import DashboardPage from './pages/admin/DashboardPage'
 import PedidosPage from './pages/pedidos/PedidosPage'
 import PedidoDetallePage from './pages/pedidos/PedidoDetallePage'
 import PagoResultadoPage from './pages/pedidos/PagoResultadoPage'
@@ -19,6 +18,7 @@ import StorePage      from './pages/store/StorePage'
 import CarritoPage    from './pages/store/CarritoPage'
 import CheckoutPage   from './pages/store/CheckoutPage'
 import MisPedidosPage from './pages/store/MisPedidosPage'
+import EstadisticasPage from './pages/estadisticas/EstadisticasPage'
 
 function AppRoutes() {
   return (
@@ -100,12 +100,12 @@ function AppRoutes() {
           }
         />
 
-        {/* ── Dashboard de administración — solo ADMIN ── */}
+        {/* ── Estadísticas — solo ADMIN ── */}
         <Route
-          path="/admin"
+          path="/estadisticas"
           element={
             <PrivateRoute roles={['ADMIN']}>
-              <DashboardPage />
+              <EstadisticasPage />
             </PrivateRoute>
           }
         />

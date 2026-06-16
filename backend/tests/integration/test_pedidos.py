@@ -277,14 +277,14 @@ def test_listar_pedidos_sin_auth_devuelve_401(client):
     error = resp.json()["error"]
     assert error["code"] == "AUTHENTICATION_ERROR"
 
-# ── 11. Stock insuficiente al crear → 400 BUSINESS_RULE ───────────────────────
+# ── 11. Stock insuficiente al crear → 409 CONFLICT ───────────────────────────
 
-def test_crear_pedido_stock_insuficiente_devuelve_400(
+def test_crear_pedido_stock_insuficiente_devuelve_409(
     client, admin_auth_headers, client_auth_headers
 ):
     """
     Pedir más unidades que el stock disponible de un producto TERMINADO rechaza
-    la creación con 400 (regla de negocio: el pedido no puede cumplirse).
+    la creación con 409 Conflict: el pedido choca con el estado actual del stock.
     """
     prod = _crear_producto_con_stock(client, admin_auth_headers, stock=2)
 
@@ -296,8 +296,8 @@ def test_crear_pedido_stock_insuficiente_devuelve_400(
         },
         headers=client_auth_headers,
     )
-    assert resp.status_code == 400, resp.text
-    assert resp.json()["error"]["code"] == "BUSINESS_RULE"
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["error"]["code"] == "CONFLICT"
 
 
 # ── 12. Historial append-only ─────────────────────────────────────────────────

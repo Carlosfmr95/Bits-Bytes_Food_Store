@@ -51,7 +51,7 @@ export default function Navbar() {
     if (esStaff) {
       links.push({ to: '/pedidos', label: '📋 Pedidos' })
       if (esAdmin) {
-        links.push({ to: '/admin', label: '📈 Dashboard' })
+        links.push({ to: '/estadisticas', label: '📊 Estadísticas' })
       }
       if (esAdmin || esStock) {
         links.push({ to: '/categorias',   label: '📂 Categorías' })
@@ -66,6 +66,7 @@ export default function Navbar() {
         links.push({ to: '/direcciones', label: '📍 Direcciones' })
       }
     } else if (esClient) {
+      links.push({ to: '/productos',   label: '🍽️ Productos' })
       links.push({ to: '/store/mis-pedidos', label: '📋 Mis Pedidos' })
       links.push({ to: '/direcciones', label: '📍 Mis Direcciones' })
     }

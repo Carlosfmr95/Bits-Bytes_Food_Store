@@ -34,7 +34,7 @@ from app.modules.productos.router import router as productos_router
 from app.modules.usuarios.router import router as usuarios_router
 from app.modules.pagos.router import router as pagos_router
 from app.modules.uploads.router import router as uploads_router
-from app.modules.admin.router import router as admin_router
+from app.modules.estadisticas.router import router as estadisticas_router
 
 # ── Registrar todos los modelos (necesario para Alembic autogenerate y para
 #    que SQLModel los conozca en tiempo de ejecución) ─────────────────────────
@@ -105,5 +105,5 @@ app.include_router(productos_router,    prefix="/api/v1/productos",   tags=["pro
 app.include_router(pedidos_router,      prefix="/api/v1/pedidos",     tags=["pedidos"])
 app.include_router(direcciones_router,  prefix="/api/v1/direcciones", tags=["direcciones"])
 app.include_router(pagos_router,        prefix="/api/v1/pagos",       tags=["pagos"])
-app.include_router(uploads_router,      prefix="/api/v1/uploads",     tags=["uploads"])
-app.include_router(admin_router,        prefix="/api/v1/admin",       tags=["admin"])
+app.include_router(uploads_router,      prefix="/api/v1/uploads",      tags=["uploads"])
+app.include_router(estadisticas_router, prefix="/api/v1/estadisticas", tags=["estadisticas"])

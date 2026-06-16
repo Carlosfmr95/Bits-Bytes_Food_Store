@@ -71,5 +71,13 @@ export const qk = {
     }) => ['usuarios', 'list', params] as const,
   },
 
-  dashboard: ['dashboard'] as const,
+  estadisticas: {
+    resumen: ['estadisticas', 'resumen'] as const,
+    ventas: (desde?: string, hasta?: string, agrupacion?: string) =>
+      ['estadisticas', 'ventas', { desde, hasta, agrupacion }] as const,
+    productosTop: (limit: number) => ['estadisticas', 'productos-top', limit] as const,
+    pedidosPorEstado: ['estadisticas', 'pedidos-por-estado'] as const,
+    ingresos: (desde?: string, hasta?: string) =>
+      ['estadisticas', 'ingresos', { desde, hasta }] as const,
+  },
 } as const

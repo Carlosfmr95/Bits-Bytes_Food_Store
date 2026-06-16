@@ -33,7 +33,9 @@ def _instalar_fake_sdk(monkeypatch):
     class _Pref:
         def create(self, data):
             _FakeMPState.ultima_preferencia = data
-            return {"response": {
+            # El SDK real de MP devuelve {"status": 201, "response": {...}};
+            # el service valida ese status, así que el doble debe incluirlo.
+            return {"status": 201, "response": {
                 "id": "PREF-TEST-1",
                 "init_point": "https://mp.test/checkout/PREF-TEST-1",
                 "sandbox_init_point": "https://mp.test/sandbox/PREF-TEST-1",
