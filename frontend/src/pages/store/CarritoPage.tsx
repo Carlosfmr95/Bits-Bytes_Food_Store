@@ -1,6 +1,6 @@
 // src/pages/store/CarritoPage.tsx
 import { Link, useNavigate } from 'react-router-dom'
-import { useCarrito } from '../../store/carritoStore'
+import { useCarrito, lineaKey } from '../../store/carritoStore'
 import { useAuth } from '../../store/authStore'
 
 function formatPrecio(n: number): string {
@@ -60,8 +60,10 @@ export default function CarritoPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-            {items.map(item => (
-              <tr key={item.producto_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+            {items.map(item => {
+              const key = lineaKey(item.producto_id, item.personalizacion)
+              return (
+              <tr key={key} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shrink-0">
@@ -71,7 +73,12 @@ export default function CarritoPage() {
                         <span className="text-2xl">🍽️</span>
                       )}
                     </div>
-                    <span className="font-medium text-gray-800 dark:text-gray-100">{item.nombre}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-800 dark:text-gray-100">{item.nombre}</span>
+                      {item.sin_ingredientes.length > 0 && (
+                        <span className="text-xs text-red-500 dark:text-red-400">Sin {item.sin_ingredientes.join(', ')}</span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
@@ -79,7 +86,7 @@ export default function CarritoPage() {
                     type="number"
                     min={1}
                     value={item.cantidad}
-                    onChange={e => cambiarCantidad(item.producto_id, Number(e.target.value))}
+                    onChange={e => cambiarCantidad(key, Number(e.target.value))}
                     className="w-16 text-center border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm
                       bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100
                       focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -93,7 +100,7 @@ export default function CarritoPage() {
                 </td>
                 <td className="px-4 py-4 text-center">
                   <button
-                    onClick={() => quitarItem(item.producto_id)}
+                    onClick={() => quitarItem(key)}
                     aria-label="Quitar"
                     className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition text-lg leading-none"
                   >
@@ -101,7 +108,8 @@ export default function CarritoPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

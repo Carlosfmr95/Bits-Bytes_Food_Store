@@ -80,13 +80,17 @@ export function useProductos() {
 
   const agregarMut = useMutation({
     mutationFn: (data: ProductoCreate) => createProductoApi(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.productos.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.productos.all })
+      qc.invalidateQueries({ queryKey: qk.estadisticas.all })
+    },
   })
 
   const editarMut = useMutation({
     mutationFn: ({ id, data }: { id: number; data: ProductoUpdate }) => updateProductoApi(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.productos.all })
+      qc.invalidateQueries({ queryKey: qk.estadisticas.all })
       setSeleccionado(null)
     },
   })
@@ -96,12 +100,16 @@ export function useProductos() {
     onSuccess: (_res, id) => {
       if (seleccionado?.id === id) setSeleccionado(null)
       qc.invalidateQueries({ queryKey: qk.productos.all })
+      qc.invalidateQueries({ queryKey: qk.estadisticas.all })
     },
   })
 
   const reactivarMut = useMutation({
     mutationFn: (id: number) => reactivarProductoApi(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.productos.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.productos.all })
+      qc.invalidateQueries({ queryKey: qk.estadisticas.all })
+    },
   })
 
   const agregar = async (data: ProductoCreate) => { await agregarMut.mutateAsync(data) }

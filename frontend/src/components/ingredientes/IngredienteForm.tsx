@@ -96,9 +96,9 @@ export default function IngredienteForm({ initial, loading = false, onSubmit, on
         </div>
       </div>
       <div>
-        <label className={labelCls}>Stock inicial</label>
+        <label className={labelCls}>{initial ? 'Stock actual' : 'Stock inicial'}</label>
         <input type="number" value={stockCantidad} onChange={e => setStockCantidad(e.target.value)} placeholder="0.000" min="0" step="0.001" className={inputCls} />
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Cantidad disponible en {unidadSel?.nombre ?? unidadMedida}. Para ajustar stock más tarde usá "Reponer stock".</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Cantidad disponible en {unidadSel?.nombre ?? unidadMedida}. {initial ? 'También podés reponer stock desde la lista.' : 'Para ajustar stock más tarde usá "Reponer stock".'}</p>
       </div>
       <div>
         <label className={labelCls}>Descripción</label>

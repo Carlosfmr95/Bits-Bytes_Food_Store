@@ -159,11 +159,16 @@ class EstadisticasRepository:
                     COALESCE(SUM(p.total), 0) AS total,
                     COUNT(*)                  AS cantidad
                 FROM pedidos p
-                JOIN pagos pg ON pg.pedido_id = p.id
                 WHERE p.deleted_at IS NULL
                   AND p.estado_codigo != 'CANCELADO'
-                  AND pg.mp_status = 'approved'
                   AND p.created_at::date BETWEEN :desde AND :hasta
+                  AND (
+                        p.forma_pago_codigo <> 'MERCADOPAGO'
+                        OR EXISTS (
+                            SELECT 1 FROM pagos pg
+                            WHERE pg.pedido_id = p.id AND pg.mp_status = 'approved'
+                        )
+                      )
                 GROUP BY p.forma_pago_codigo
                 ORDER BY total DESC
                 """

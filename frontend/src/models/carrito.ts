@@ -6,6 +6,8 @@ export interface ItemCarrito {
   precio_base: number
   cantidad: number
   imagen_url: string | null
+  personalizacion: number[]
+  sin_ingredientes: string[]
 }
 
 export interface CarritoState {

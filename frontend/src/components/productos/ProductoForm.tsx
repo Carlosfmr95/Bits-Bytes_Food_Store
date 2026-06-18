@@ -5,7 +5,7 @@ import type { Producto, ProductoCreate, ProductoUpdate, TipoProducto } from '../
 import type { Ingrediente } from '../../models/ingrediente'
 import type { Categoria } from '../../models/categoria'
 
-interface IngItemRow { ingrediente_id: number; cantidad: number; es_removible: boolean; es_opcional: boolean }
+interface IngItemRow { ingrediente_id: number; cantidad: number; es_removible: boolean }
 
 const TIPOS: { value: TipoProducto; label: string; desc: string }[] = [
   { value: 'TERMINADO',     label: 'Terminado',     desc: 'Producto listo para venta, sin receta' },
@@ -46,7 +46,7 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
       setTipo(initial.tipo ?? 'TERMINADO')
       const newCatSel = new Map<number, boolean>(); initial.categorias.forEach(c => newCatSel.set(c.id, c.es_principal)); setCatSel(newCatSel)
       if (initial.tipo === 'MANUFACTURADO') {
-        setIngItems(initial.ingredientes.map(i => ({ ingrediente_id: i.id, cantidad: i.cantidad, es_removible: i.es_removible, es_opcional: i.es_opcional })))
+        setIngItems(initial.ingredientes.map(i => ({ ingrediente_id: i.id, cantidad: i.cantidad, es_removible: i.es_removible })))
       } else {
         setIngItems([])
       }
@@ -85,11 +85,10 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
 
   const handleAddIngrediente = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = Number(e.target.value); if (!id) return
-    setIngItems(prev => [...prev, { ingrediente_id: id, cantidad: 1, es_removible: false, es_opcional: false }]); e.target.value = ''; markDirty()
+    setIngItems(prev => [...prev, { ingrediente_id: id, cantidad: 1, es_removible: false }]); e.target.value = ''; markDirty()
   }
   const updateCantidad   = (idx: number, val: number) => { setIngItems(prev => prev.map((item, i) => i === idx ? { ...item, cantidad: val } : item)); markDirty() }
   const updateRemovible  = (idx: number, val: boolean) => { setIngItems(prev => prev.map((item, i) => i === idx ? { ...item, es_removible: val } : item)); markDirty() }
-  const updateOpcional   = (idx: number, val: boolean) => { setIngItems(prev => prev.map((item, i) => i === idx ? { ...item, es_opcional: val } : item)); markDirty() }
   const removeIngItem    = (idx: number) => { setIngItems(prev => prev.filter((_, i) => i !== idx)); markDirty() }
   const handleTipoChange = (newTipo: TipoProducto) => { setTipo(newTipo); setIngItems([]); if (newTipo === 'MANUFACTURADO') setStock('0'); markDirty() }
 
@@ -152,6 +151,13 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
     finally { setSubmitting(false) }
   }
 
+  // Toma el precio base cargado como costo y le aplica el margen → precio de venta.
+  const aplicarMargenTerminado = () => {
+    const base = Number(precioBase)
+    if (!base || base <= 0) { setError('Cargá un precio base mayor a 0 antes de aplicar el margen'); return }
+    setError(''); setPrecio((base * (1 + margen / 100)).toFixed(2)); markDirty()
+  }
+
   const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-500"
   const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
 
@@ -195,6 +201,20 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
             <label className={labelCls}>Stock disponible</label>
             <input type="number" value={stockCantidad} onChange={e => { setStock(e.target.value); markDirty() }} min="0" className={inputCls} />
           </div>
+        </div>
+      )}
+
+      {/* Margen — aplica un % sobre el precio base cargado (costo → venta). */}
+      {tipo === 'TERMINADO' && (
+        <div className="flex items-end gap-2">
+          <div>
+            <label className={labelCls}>Margen <span className="text-gray-400 dark:text-gray-500 font-normal">(%)</span></label>
+            <input type="number" value={margen} onChange={e => { setMargen(Number(e.target.value)); markDirty() }} min="0" step="0.1" className={`${inputCls} w-28`} />
+          </div>
+          <button type="button" onClick={aplicarMargenTerminado}
+            className="px-4 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition whitespace-nowrap">
+            Aplicar al precio base
+          </button>
         </div>
       )}
 
@@ -313,7 +333,6 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
                     <th className="text-center px-3 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Cantidad</th>
                     <th className="text-right px-3 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Subtotal</th>
                     <th className="text-center px-2 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Remov.</th>
-                    <th className="text-center px-2 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Opc.</th>
                     <th className="px-2 py-2.5"></th>
                   </tr>
                 </thead>
@@ -339,10 +358,6 @@ export default function ProductoForm({ initial, categorias, ingredientes, onSubm
                         <td className="px-2 py-2.5 text-center">
                           <input type="checkbox" checked={item.es_removible} onChange={e => updateRemovible(idx, e.target.checked)}
                             className="w-4 h-4 accent-green-500" title="Removible: el cliente puede pedirlo sin este ingrediente" />
-                        </td>
-                        <td className="px-2 py-2.5 text-center">
-                          <input type="checkbox" checked={item.es_opcional} onChange={e => updateOpcional(idx, e.target.checked)}
-                            className="w-4 h-4 accent-amber-500" title="Opcional: el cliente puede pedirlo como extra adicional" />
                         </td>
                         <td className="px-2 py-2.5 text-center">
                           <button type="button" onClick={() => removeIngItem(idx)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 w-7 h-7 rounded-lg flex items-center justify-center transition text-xs font-bold mx-auto" title="Eliminar">✕</button>

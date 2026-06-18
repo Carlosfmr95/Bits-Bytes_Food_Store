@@ -4,11 +4,21 @@ import { persist } from 'zustand/middleware'
 import type { ItemCarrito } from '../models/carrito'
 import type { Producto } from '../models/producto'
 
+export function lineaKey(producto_id: number, personalizacion: number[]): string {
+  return `${producto_id}:${[...personalizacion].sort((a, b) => a - b).join(',')}`
+}
+
+interface AgregarOpciones {
+  cantidad?: number
+  personalizacion?: number[]
+  sin_ingredientes?: string[]
+}
+
 interface CarritoState {
   items: ItemCarrito[]
-  agregarItem: (producto: Producto, cantidad?: number) => void
-  quitarItem: (producto_id: number) => void
-  cambiarCantidad: (producto_id: number, cantidad: number) => void
+  agregarItem: (producto: Producto, opciones?: AgregarOpciones) => void
+  quitarItem: (key: string) => void
+  cambiarCantidad: (key: string, cantidad: number) => void
   vaciarCarrito: () => void
 }
 
@@ -18,14 +28,18 @@ export const useCarritoStore = create<CarritoState>()(
     (set) => ({
       items: [],
 
-      /** Suma cantidad si el producto ya está; si no, lo agrega como línea nueva. */
-      agregarItem: (producto, cantidad = 1) =>
+      /** Suma cantidad si la misma combinación producto+personalización ya está; si no, agrega línea nueva. */
+      agregarItem: (producto, opciones = {}) =>
         set((state) => {
-          const existente = state.items.find((i) => i.producto_id === producto.id)
+          const cantidad = opciones.cantidad ?? 1
+          const personalizacion = opciones.personalizacion ?? []
+          const sin_ingredientes = opciones.sin_ingredientes ?? []
+          const key = lineaKey(producto.id, personalizacion)
+          const existente = state.items.find((i) => lineaKey(i.producto_id, i.personalizacion) === key)
           if (existente) {
             return {
               items: state.items.map((i) =>
-                i.producto_id === producto.id
+                lineaKey(i.producto_id, i.personalizacion) === key
                   ? { ...i, cantidad: i.cantidad + cantidad }
                   : i,
               ),
@@ -40,24 +54,26 @@ export const useCarritoStore = create<CarritoState>()(
                 precio_base: producto.precio_base,
                 cantidad,
                 imagen_url: producto.imagenes_url?.[0] ?? null,
+                personalizacion,
+                sin_ingredientes,
               },
             ],
           }
         }),
 
-      /** Quita una línea del carrito por producto_id. */
-      quitarItem: (producto_id) =>
-        set((state) => ({ items: state.items.filter((i) => i.producto_id !== producto_id) })),
+      /** Quita una línea del carrito por su clave. */
+      quitarItem: (key) =>
+        set((state) => ({ items: state.items.filter((i) => lineaKey(i.producto_id, i.personalizacion) !== key) })),
 
       /** Fija la cantidad de una línea; si baja a 0 o menos, la quita. */
-      cambiarCantidad: (producto_id, cantidad) =>
+      cambiarCantidad: (key, cantidad) =>
         set((state) => {
           if (cantidad <= 0) {
-            return { items: state.items.filter((i) => i.producto_id !== producto_id) }
+            return { items: state.items.filter((i) => lineaKey(i.producto_id, i.personalizacion) !== key) }
           }
           return {
             items: state.items.map((i) =>
-              i.producto_id === producto_id ? { ...i, cantidad } : i,
+              lineaKey(i.producto_id, i.personalizacion) === key ? { ...i, cantidad } : i,
             ),
           }
         }),

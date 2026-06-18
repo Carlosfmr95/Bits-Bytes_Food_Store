@@ -62,6 +62,7 @@ class IngredienteService:
                 es_alergeno=data.es_alergeno,
                 costo=data.costo,
                 unidad_medida_id=unidad_id,
+                stock_cantidad=data.stock_cantidad,
             )
             uow.ingredientes.add(ing)
             result = IngredientePublic.model_validate(ing)

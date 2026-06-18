@@ -115,7 +115,6 @@ class ProductoService:
                     nombre=ing.nombre,
                     es_alergeno=ing.es_alergeno,
                     es_removible=pi.es_removible,
-                    es_opcional=pi.es_opcional,
                     cantidad=pi.cantidad,
                     unidad_medida=ing.unidad_medida,
                     costo_unitario=ing.costo,
@@ -218,7 +217,6 @@ class ProductoService:
                     # ERD: la unidad de la receta = unidad base del ingrediente
                     unidad_medida_id=ing.unidad_medida_id,
                     es_removible=ing_input.es_removible,
-                    es_opcional=ing_input.es_opcional,
                 ))
 
             result = self._build_public(uow, prod)
@@ -309,8 +307,7 @@ class ProductoService:
                         cantidad=ing_input.cantidad,
                         unidad_medida_id=ing.unidad_medida_id,
                         es_removible=ing_input.es_removible,
-                        es_opcional=ing_input.es_opcional,
-                    ))
+                        ))
 
             result = self._build_public(uow, prod)
         return result

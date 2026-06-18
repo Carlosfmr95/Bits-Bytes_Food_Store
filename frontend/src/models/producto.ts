@@ -14,7 +14,6 @@ export interface IngredienteEnProducto {
   nombre: string
   es_alergeno: boolean
   es_removible: boolean
-  es_opcional: boolean
   cantidad: number
   unidad_medida: UnidadMedida
   costo_unitario: number
@@ -26,7 +25,6 @@ export interface ProductoIngredienteInput {
   /** Cantidad necesaria del ingrediente por 1 unidad del producto. */
   cantidad: number
   es_removible: boolean
-  es_opcional: boolean
 }
 
 export interface Producto {

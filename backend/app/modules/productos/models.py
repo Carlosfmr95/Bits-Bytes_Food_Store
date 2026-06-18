@@ -139,8 +139,6 @@ class ProductoIngrediente(SQLModel, table=True):
     # Se asigna = unidad del ingrediente al armar la receta.
     unidad_medida_id: int = Field(foreign_key="unidades_medida.id", nullable=False)
     es_removible: bool = Field(default=False)
-    # es_opcional: el cliente puede pedir este ingrediente como "extra" adicional
-    es_opcional: bool = Field(default=False)
 
     producto: Optional["Producto"] = Relationship(back_populates="ingredientes_link")
     ingrediente: Optional["Ingrediente"] = Relationship(back_populates="producto_ingredientes")

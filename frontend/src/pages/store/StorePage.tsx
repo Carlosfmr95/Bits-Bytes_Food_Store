@@ -20,6 +20,7 @@ function ProductCard({ producto, onAgregar }: { producto: Producto; onAgregar: (
   const sinStock = producto.stock_cantidad === 0
   const categoriaPrincipal = producto.categorias.find(c => c.es_principal)
   const imagenUrl = producto.imagenes_url?.[0]
+  const personalizable = producto.tipo === 'MANUFACTURADO' && producto.ingredientes.some(i => i.es_removible)
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden hover:shadow-md transition">
@@ -69,8 +70,50 @@ function ProductCard({ producto, onAgregar }: { producto: Producto; onAgregar: (
             disabled:text-gray-400 dark:disabled:text-gray-500
             disabled:cursor-not-allowed"
         >
-          {sinStock ? 'Sin stock' : '🛒 Agregar al carrito'}
+          {sinStock ? 'Sin stock' : personalizable ? '🧩 Personalizar' : '🛒 Agregar al carrito'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+function CustomizeModal({ producto, onConfirm, onClose }: {
+  producto: Producto
+  onConfirm: (removidos: number[], nombres: string[]) => void
+  onClose: () => void
+}) {
+  const removibles = producto.ingredientes.filter(i => i.es_removible)
+  const [quitados, setQuitados] = useState<Set<number>>(new Set())
+
+  const toggle = (id: number) =>
+    setQuitados(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const confirmar = () => {
+    const ids = Array.from(quitados)
+    const nombres = removibles.filter(i => quitados.has(i.id)).map(i => i.nombre)
+    onConfirm(ids, nombres)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{producto.nombre}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">Quitá los ingredientes que no quieras en tu pedido.</p>
+        <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+          {removibles.map(ing => (
+            <label key={ing.id} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40">
+              <input type="checkbox" checked={quitados.has(ing.id)} onChange={() => toggle(ing.id)} className="w-4 h-4 accent-red-500" />
+              <span className={`flex-1 text-sm ${quitados.has(ing.id) ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                {ing.nombre}{ing.es_alergeno ? ' ⚠️' : ''}
+              </span>
+              {quitados.has(ing.id) && <span className="text-xs font-semibold text-red-500">Sin</span>}
+            </label>
+          ))}
+        </div>
+        <div className="flex gap-3 justify-end pt-5">
+          <button onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition">Cancelar</button>
+          <button onClick={confirmar} className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition">🛒 Agregar</button>
+        </div>
       </div>
     </div>
   )
@@ -79,6 +122,7 @@ function ProductCard({ producto, onAgregar }: { producto: Producto; onAgregar: (
 export default function StorePage() {
   const { agregarItem } = useCarrito()
   const { toasts, addToast, removeToast } = useToast()
+  const [personalizando, setPersonalizando] = useState<Producto | null>(null)
 
   const [busqueda,   setBusqueda]   = useState('')
   const [page,       setPage]       = useState(1)
@@ -125,8 +169,20 @@ export default function StorePage() {
   }
 
   const handleAgregar = (producto: Producto) => {
+    const tieneRemovibles = producto.tipo === 'MANUFACTURADO' && producto.ingredientes.some(i => i.es_removible)
+    if (tieneRemovibles) {
+      setPersonalizando(producto)
+      return
+    }
     agregarItem(producto)
     addToast(`${producto.nombre} agregado al carrito ✓`, 'success')
+  }
+
+  const handleConfirmarPersonalizacion = (removidos: number[], nombres: string[]) => {
+    if (!personalizando) return
+    agregarItem(personalizando, { personalizacion: removidos, sin_ingredientes: nombres })
+    addToast(`${personalizando.nombre} agregado al carrito ✓`, 'success')
+    setPersonalizando(null)
   }
 
   return (
@@ -227,6 +283,14 @@ export default function StorePage() {
       )}
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      {personalizando && (
+        <CustomizeModal
+          producto={personalizando}
+          onConfirm={handleConfirmarPersonalizacion}
+          onClose={() => setPersonalizando(null)}
+        />
+      )}
     </div>
   )
 }

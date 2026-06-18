@@ -2,9 +2,15 @@
 """Schemas de solo lectura para el módulo de estadísticas."""
 from datetime import date
 from decimal import Decimal
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
+from pydantic import PlainSerializer
 from sqlmodel import SQLModel
+
+Monto = Annotated[
+    Decimal,
+    PlainSerializer(lambda v: float(v), return_type=float, when_used="json"),
+]
 
 
 class ProductoStockBajo(SQLModel):
@@ -14,23 +20,23 @@ class ProductoStockBajo(SQLModel):
 
 
 class ResumenResponse(SQLModel):
-    ventas_hoy: Decimal
-    ventas_mes: Decimal
-    ticket_promedio: Decimal
+    ventas_hoy: Monto
+    ventas_mes: Monto
+    ticket_promedio: Monto
     pedidos_activos: int
     productos_stock_bajo: List[ProductoStockBajo]
 
 
 class VentasPeriodoItem(SQLModel):
     periodo: str
-    total_ventas: Decimal
+    total_ventas: Monto
     cantidad_pedidos: int
 
 
 class ProductoTopItem(SQLModel):
     producto_id: int
     nombre: str
-    ingresos: Decimal
+    ingresos: Monto
     cantidad_vendida: int
 
 
@@ -41,7 +47,7 @@ class PedidosEstadoItem(SQLModel):
 
 class IngresosItem(SQLModel):
     forma_pago_codigo: str
-    total: Decimal
+    total: Monto
     cantidad: int
 
 

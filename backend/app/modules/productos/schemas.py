@@ -24,7 +24,6 @@ class ProductoIngredienteInput(SQLModel):
     ingrediente_id: int
     cantidad: Decimal = Field(gt=0, description="Cantidad del ingrediente por unidad de producto")
     es_removible: bool = False
-    es_opcional: bool = False
 
 
 # ── Ingrediente dentro de un producto (output) ───────────────────────────────
@@ -35,7 +34,6 @@ class IngredienteEnProducto(SQLModel):
     nombre: str
     es_alergeno: bool
     es_removible: bool
-    es_opcional: bool
     cantidad: QuantityDecimal           # cantidad por unidad de producto
     unidad_medida: str                  # código de la unidad del ingrediente (KG, L, ...)
     costo_unitario: MoneyDecimal        # costo del ingrediente por su unidad

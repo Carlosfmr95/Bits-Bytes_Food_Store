@@ -72,6 +72,7 @@ export const qk = {
   },
 
   estadisticas: {
+    all: ['estadisticas'] as const,
     resumen: ['estadisticas', 'resumen'] as const,
     ventas: (desde?: string, hasta?: string, agrupacion?: string) =>
       ['estadisticas', 'ventas', { desde, hasta, agrupacion }] as const,

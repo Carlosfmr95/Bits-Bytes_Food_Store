@@ -84,7 +84,11 @@ export default function CheckoutPage() {
         forma_pago_codigo: formaPagoCodigo,
         direccion_id:      direccionId,
         notas:             notas.trim() || null,
-        items:             items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })),
+        items:             items.map(i => ({
+          producto_id: i.producto_id,
+          cantidad: i.cantidad,
+          personalizacion: i.personalizacion.length ? i.personalizacion : null,
+        })),
       })
       qc.invalidateQueries({ queryKey: qk.pedidos.all })
 
